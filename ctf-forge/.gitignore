@@ -1,0 +1,47 @@
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+.env.*
+!.env.example
+.data/
+workspaces/*
+!workspaces/.gitkeep
+reports/*
+!reports/.gitkeep
+*.egg-info/
+dist/
+build/
+*.bak-*
+*.bak_*
+
+# Live competition material stays local: downloaded challenges may be
+# copyrighted and reports/workspaces may contain flags, endpoints or tokens.
+challenges/platform/
+
+# One-off competition scripts and artefacts are evidence, not product source.
+/_*/
+/_*.py
+/.data_*.py
+/*.json
+/*.html
+/*.log
+/*.npy
+/*.out
+/*.txt
+/blind_*.py
+/inst_probe*.py
+
+# Only the package belongs under src/. Root-level files are live-analysis
+# scratch scripts retained locally for reproducibility.
+/src/*.py
+
+# Keep the reusable maintenance scripts; exclude live-event helpers.
+/scripts/_*.py
+/scripts/lab*.py
+/scripts/probe.py
+/scripts/gen_solved_summary.py

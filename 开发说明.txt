@@ -1,0 +1,845 @@
+# CTF-Forge 项目开发说明书
+
+**版本：** v0.1  
+**项目类型：** 自主式 CTF 解题 Agent  
+**第一阶段目标：** Reverse Agent（ELF 逆向分析）  
+**开发语言：** Python 3.12+  
+**开发环境：** Windows + WSL2 Ubuntu + Docker  
+**Agent 框架：** LangGraph  
+**模型部署：** 云端 LLM API
+
+---
+
+# 一、项目目标
+
+## 1.1 项目定位
+
+开发一套面向 Jeopardy CTF 比赛的自主解题 Agent 系统，项目暂定名为 CTF-Forge。
+
+长期目标是实现能够自主获取题目、分析题目、调用工具、执行解题操作、根据结果调整策略、验证 Flag 并在比赛规则允许时提交 Flag 的自动化系统。
+
+第一阶段不追求覆盖所有 CTF 领域，而是集中开发一个具备真实工具执行能力的 ELF Reverse Agent。
+
+## 1.2 第一阶段核心目标
+
+用户提供：
+
+- CTF 题目描述。
+- ELF 可执行文件。
+- 可选附件。
+
+Agent 自动完成：
+
+1. 识别文件类型、架构和 ELF 基本信息。
+2. 分析 ELF Sections、Symbols、Strings。
+3. 分析程序入口、关键函数和调用关系。
+4. 使用反汇编工具分析机器指令。
+5. 根据分析结果制定解题计划。
+6. 自主选择工具并执行分析。
+7. 根据真实执行结果调整分析方向。
+8. 在必要时使用 GDB 进行动态调试。
+9. 提取 Flag 候选。
+10. 对候选结果进行验证。
+11. 生成完整解题报告。
+
+系统必须具备自主推理和工具调用能力，不能只是一个根据题目描述生成分析建议的聊天机器人。
+
+## 1.3 第一阶段非目标
+
+以下功能暂时不实现：
+
+- Web、Pwn、Crypto、Forensics、Misc 专项 Agent。
+- AWD 攻防对抗。
+- 自动参加所有线上比赛。
+- 自动提交线上 Flag。
+- 多 Agent 并行协作。
+- 图形化管理界面。
+- Ghidra GUI 自动化。
+
+但是，代码结构应当为未来增加这些能力预留扩展接口。
+
+---
+
+# 二、技术选型
+
+请优先使用以下技术，不要随意引入重复功能的框架。
+
+| 模块 | 技术 |
+|---|---|
+| 编程语言 | Python 3.12+ |
+| 依赖管理 | uv |
+| Agent 工作流 | LangGraph |
+| LLM 接口 | langchain-openai |
+| 数据模型 | Pydantic |
+| 配置管理 | pydantic-settings |
+| 执行隔离 | Docker |
+| ELF 解析 | pyelftools |
+| 反汇编 | Capstone |
+| 二进制工具 | GNU Binutils |
+| 动态调试 | GDB |
+| 数据存储 | SQLite |
+| 命令行 | Typer + Rich |
+| 日志 | structlog |
+| 自动测试 | pytest |
+| 代码检查 | Ruff + mypy |
+
+依赖至少分为：
+
+- 核心运行依赖。
+- 逆向分析依赖。
+- 开发测试依赖。
+
+使用 uv 管理依赖，生成并提交 uv.lock，确保环境可以复现。
+
+模型名称、API 地址、API Key 等配置必须外置，不允许硬编码。
+
+---
+
+# 三、系统架构
+
+采用五层架构。
+
+## Layer 1：输入层
+
+负责接收题目：
+
+- 题目 ID。
+- 题目名称。
+- 题目描述。
+- 题目类别。
+- 附件路径。
+- 可选的题目验证器。
+
+## Layer 2：Agent Orchestration
+
+使用 LangGraph 实现工作流。
+
+主要角色：
+
+**Coordinator**
+- 接收任务。
+- 判断任务类型。
+- 规划解题步骤。
+- 管理执行状态。
+- 控制资源预算。
+
+**Solver**
+- 执行 Reverse 分析。
+- 调用工具。
+- 解释工具结果。
+- 更新分析假设。
+- 重新制定计划。
+
+**Verifier**
+- 检查 Flag 候选。
+- 判断验证状态。
+- 防止未经验证的结果被认定为成功。
+
+第一版允许这些角色共用同一个底层模型，但职责必须分离。
+
+## Layer 3：Reverse Skill
+
+负责提供逆向分析领域知识。
+
+至少覆盖：
+
+- ELF 文件结构。
+- ELF Header。
+- Sections。
+- Symbols。
+- Relocation。
+- 动态链接信息。
+- Strings 分析。
+- 反汇编。
+- 函数分析。
+- 基础 GDB 调试。
+
+Skill 与 Tool 分离：
+
+- Skill 提供知识和分析策略。
+- Tool 执行实际操作。
+- Agent 负责选择策略和工具。
+
+## Layer 4：Tool Execution
+
+提供：
+
+- 文件读取。
+- 文件搜索。
+- ELF 信息提取。
+- Shell 命令执行。
+- Python 脚本执行。
+- 反汇编。
+- GDB 调试。
+- 执行结果读取。
+
+所有题目相关命令必须在 Docker 沙箱中运行。
+
+## Layer 5：Storage & Evaluation
+
+负责：
+
+- 保存任务状态。
+- 保存工具执行日志。
+- 保存中间分析结果。
+- 保存 Flag 候选。
+- 保存解题报告。
+- 记录 Benchmark 结果。
+
+---
+
+# 四、项目目录结构
+
+请按照以下结构创建项目：
+
+```text
+ctf-forge/
+│
+├── pyproject.toml
+├── uv.lock
+├── .env.example
+├── .gitignore
+├── README.md
+│
+├── configs/
+│   ├── agent.yaml
+│   ├── models.yaml
+│   └── sandbox.yaml
+│
+├── src/
+│   └── ctf_forge/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── config.py
+│       │
+│       ├── core/
+│       │   ├── models.py
+│       │   ├── state.py
+│       │   ├── events.py
+│       │   └── exceptions.py
+│       │
+│       ├── agents/
+│       │   ├── coordinator.py
+│       │   ├── solver.py
+│       │   └── verifier.py
+│       │
+│       ├── graph/
+│       │   ├── builder.py
+│       │   ├── nodes.py
+│       │   └── routing.py
+│       │
+│       ├── llm/
+│       │   ├── client.py
+│       │   └── prompts.py
+│       │
+│       ├── skills/
+│       │   └── reverse/
+│       │       ├── skill.md
+│       │       ├── analyst.py
+│       │       └── heuristics.py
+│       │
+│       ├── tools/
+│       │   ├── registry.py
+│       │   ├── filesystem.py
+│       │   ├── elf.py
+│       │   ├── binutils.py
+│       │   └── debugger.py
+│       │
+│       ├── sandbox/
+│       │   ├── interface.py
+│       │   ├── docker_runtime.py
+│       │   └── policy.py
+│       │
+│       ├── storage/
+│       │   ├── database.py
+│       │   ├── repository.py
+│       │   └── artifacts.py
+│       │
+│       ├── evaluation/
+│       │   ├── benchmark.py
+│       │   └── metrics.py
+│       │
+│       └── reporting/
+│           └── report.py
+│
+├── docker/
+│   ├── Dockerfile
+│   └── seccomp.json
+│
+├── challenges/
+│   └── samples/
+│
+├── workspaces/
+├── reports/
+│
+└── tests/
+    ├── unit/
+    ├── integration/
+    └── benchmark/
+```
+
+不要把全部功能写进单一 Python 文件。
+
+如果实际开发过程中发现目录结构需要调整，应说明原因，并保持模块职责清晰。
+
+---
+
+# 五、核心接口设计
+
+## 5.1 统一数据模型
+
+使用 Pydantic 定义以下对象：
+
+### ChallengeSpec
+
+```python
+class ChallengeSpec(BaseModel):
+    challenge_id: str
+    name: str
+    category: str
+    description: str
+    files: list[str]
+    scope: dict
+```
+
+### ExecResult
+
+```python
+class ExecResult(BaseModel):
+    exit_code: int | None
+    stdout: str
+    stderr: str
+    duration_ms: int
+    timed_out: bool = False
+```
+
+### Observation
+
+```python
+class Observation(BaseModel):
+    source: str
+    content: str
+    artifact_path: str | None = None
+```
+
+### FlagCandidate
+
+```python
+class FlagCandidate(BaseModel):
+    value: str
+    source: str
+    confidence: float = 0.0
+    status: str = "candidate"
+```
+
+Flag 状态至少区分：
+
+- candidate
+- format_valid
+- local_verified
+- platform_accepted
+- rejected
+
+不能仅凭模型声称成功就将任务标记为完成。
+
+## 5.2 SandboxRuntime 接口
+
+定义统一沙箱抽象：
+
+```python
+class SandboxRuntime(Protocol):
+
+    async def create(self, challenge_id: str):
+        ...
+
+    async def execute(
+        self,
+        sandbox_id: str,
+        argv: list[str],
+        cwd: str,
+        timeout: int
+    ):
+        ...
+
+    async def read_file(
+        self,
+        sandbox_id: str,
+        path: str,
+        max_bytes: int
+    ):
+        ...
+
+    async def write_file(
+        self,
+        sandbox_id: str,
+        path: str,
+        content: bytes
+    ):
+        ...
+
+    async def destroy(self, sandbox_id: str):
+        ...
+```
+
+Docker SDK 是同步接口时，使用 asyncio.to_thread 等方式封装，不能直接假设同步函数支持 await。
+
+命令执行优先使用 argv 数组，不允许直接将模型输出拼接为任意 Shell 命令字符串。
+
+## 5.3 ELF Inspector 接口
+
+实现：
+
+```python
+inspect_elf(path)
+inspect_sections(path)
+inspect_symbols(path)
+inspect_strings(path)
+inspect_relocations(path)
+inspect_imports(path)
+```
+
+基础 ELF 信息至少包含：
+
+- ELF32 / ELF64。
+- CPU Architecture。
+- Endianness。
+- Entry Point。
+- Program Headers。
+- Section Headers。
+- Symbols。
+- 动态链接信息。
+
+优先使用 pyelftools 实现结构化解析。
+
+必要时通过 readelf、objdump、nm、strings 等工具补充。
+
+## 5.4 Tool Registry
+
+所有工具统一注册。
+
+每个工具需要具有：
+
+- 名称。
+- 参数 Schema。
+- 功能描述。
+- 权限要求。
+- 执行超时。
+- 输出大小限制。
+- 执行结果。
+
+Agent 只能调用注册且获得授权的工具。
+
+---
+
+# 六、LangGraph 工作流
+
+采用 StateGraph。
+
+任务流程：
+
+```text
+START
+  |
+  v
+Validate Scope
+  |
+  v
+Prepare Sandbox
+  |
+  v
+Inspect Binary
+  |
+  v
+Generate Plan
+  |
+  v
+Solver Agent
+  |
+  v
+Tool Calls?
+  |
+  +---- Yes ----> Tool Execution
+  |                    |
+  |                    v
+  |              Record Observation
+  |                    |
+  |                    +----> Solver
+  |
+  +---- Candidate Found
+  |          |
+  |          v
+  |       Verifier
+  |          |
+  |          v
+  |       Verified?
+  |          |
+  |          +---- No ----> Replan
+  |          |
+  |          +---- Yes ---> Report
+  |
+  +---- Budget Exhausted ---> Partial Report
+```
+
+State 至少保存：
+
+- challenge。
+- sandbox_id。
+- messages。
+- plan。
+- observations。
+- candidate_flags。
+- verified_flag。
+- tool_calls。
+- llm_calls。
+- status。
+
+使用 SQLite Checkpointer 保存工作流状态。
+
+设置最大执行时间、最大工具调用次数、最大模型调用次数和 Token 预算。
+
+对于连续没有有效进展的情况，触发重新规划或终止，而不是无限循环。
+
+---
+
+# 七、Docker 安全要求
+
+Docker 是本项目的重要安全边界。
+
+必须遵守：
+
+1. 每道题目使用独立容器。
+2. 默认关闭网络。
+3. 不使用 privileged 模式。
+4. 不挂载 Docker Socket 到题目容器。
+5. 容器使用非 root 用户。
+6. 不向容器传入模型 API Key。
+7. 不向容器传入比赛平台 Token。
+8. 限制 CPU、内存、进程数和运行时间。
+9. 题目输入目录只读。
+10. 工作目录使用独立可写挂载。
+11. 不允许路径穿越读取宿主机文件。
+12. 容器销毁后清理临时资源。
+
+建议 Docker 基础镜像使用 Ubuntu 24.04。
+
+第一版安装：
+
+- binutils
+- file
+- gdb
+- python3
+- python3-venv
+
+建议默认限制：
+
+```text
+network: none
+read_only: true
+cap_drop: ALL
+no-new-privileges: true
+memory: 1g
+cpus: 1
+pids_limit: 128
+```
+
+如 GDB 动态调试确实需要 ptrace 权限，应设计独立调试 Profile，最小化增加权限，不允许直接关闭全部安全限制。
+
+题目描述、附件、程序输出、反汇编内容均视为不可信数据，不得把其中的指令当作系统或开发者指令执行。
+
+---
+
+# 八、CLI 命令设计
+
+第一版提供命令行接口。
+
+### 查看 ELF
+
+```bash
+ctf-forge inspect ./challenges/sample/challenge
+```
+
+### 自动解题
+
+```bash
+ctf-forge solve ./challenges/sample/challenge \
+  --description ./challenges/sample/description.md
+```
+
+### 查看任务记录
+
+```bash
+ctf-forge task list
+```
+
+### 查看任务详情
+
+```bash
+ctf-forge task show <task_id>
+```
+
+### 查看解题报告
+
+```bash
+ctf-forge report <task_id>
+```
+
+CLI 必须提供友好的终端输出，并且支持将完整日志保存到文件。
+
+---
+
+# 九、分阶段开发任务
+
+请严格按照以下顺序实施，不要一次性生成全部代码后不做测试。
+
+## Milestone 0：环境初始化
+
+- 检查 Python 3.12+。
+- 检查 uv。
+- 检查 Docker。
+- 初始化项目。
+- 创建 Git 仓库。
+- 配置 .gitignore。
+- 配置 .env.example。
+
+验收：可以正常执行 uv sync。
+
+## Milestone 1：项目骨架
+
+- 创建 src 项目结构。
+- 定义 Pydantic 数据模型。
+- 实现配置管理。
+- 实现结构化日志。
+- 实现基础 SQLite 存储。
+- 实现 CLI 入口。
+
+验收：项目可以安装，并且 CLI 可以正常运行。
+
+## Milestone 2：Docker Sandbox
+
+- 编写 Dockerfile。
+- 构建分析镜像。
+- 实现容器创建和销毁。
+- 实现安全命令执行。
+- 实现文件读写。
+- 实现执行超时。
+- 实现输出大小限制。
+- 实现路径安全检查。
+
+验收：能够在独立容器中运行 file、readelf 等工具，并确认容器无法访问宿主机敏感文件。
+
+## Milestone 3：ELF Inspector
+
+- 实现 ELF 格式识别。
+- 实现 Header 分析。
+- 实现 Section 分析。
+- 实现 Symbol 分析。
+- 实现 Strings 分析。
+- 实现 Relocation 分析。
+- 实现基础反汇编。
+
+验收：能够对测试 ELF 输出结构化分析报告。
+
+## Milestone 4：LLM 接入
+
+- 实现模型客户端。
+- 支持从配置读取模型名称。
+- 支持 API Key 环境变量。
+- 实现超时和有限重试。
+- 实现统一模型调用接口。
+- 实现 Tool Calling。
+
+验收：Agent 能够调用模型，并根据模型返回选择注册工具。
+
+## Milestone 5：LangGraph Solver
+
+- 实现 Agent State。
+- 实现 Coordinator。
+- 实现 Solver。
+- 实现工具执行节点。
+- 实现观察结果记录。
+- 实现循环和重新规划。
+- 实现 SQLite Checkpoint。
+- 实现预算控制。
+
+验收：Agent 可以自主完成多轮工具调用，而不需要人工逐步指定每条命令。
+
+## Milestone 6：Reverse Skill 与验证器
+
+- 编写 Reverse Skill。
+- 建立 ELF 分析策略。
+- 增加 GDB 调试能力。
+- 实现 Flag 候选提取。
+- 实现 Flag 格式检查。
+- 支持题目提供的本地验证器。
+- 实现解题报告生成。
+
+验收：Agent 能够对至少一道授权 Reverse 题目完成从分析到 Flag 验证的闭环。
+
+## Milestone 7：Benchmark
+
+准备 10–15 道具有标准答案的授权 Reverse 测试题。
+
+每道题记录：
+
+- 题目 ID。
+- 难度。
+- 输入附件。
+- 正确 Flag。
+- 本地验证方式。
+- Agent 执行记录。
+- 最终结果。
+- Token 消耗。
+- 解题时间。
+
+测试指标：
+
+- Pass@1。
+- Pass@3。
+- 平均解题时间。
+- 每道成功题目的模型成本。
+- 工具调用成功率。
+- 错误 Flag 候选数量。
+
+正确答案应由独立测试程序保存，不能暴露给 Solver。
+
+---
+
+# 十、第一阶段验收标准
+
+CTF-Forge v0.1 必须满足：
+
+| 验收项 | 要求 |
+|---|---|
+| 项目安装 | uv sync 成功 |
+| Docker | 沙箱创建和销毁正常 |
+| ELF 解析 | 正确识别常见 ELF 信息 |
+| 静态分析 | 能调用至少三种分析工具 |
+| LLM | 能够正常调用 API |
+| Tool Calling | 能够自主选择工具 |
+| 工作流 | 能够多轮执行和反馈 |
+| 状态保存 | 支持任务状态持久化 |
+| 故障恢复 | 超时、API 错误可以处理 |
+| Flag | 候选与验证状态分离 |
+| 日志 | 工具调用可追溯 |
+| Benchmark | 能够运行标准测试集 |
+
+初步性能目标：在准备的简单 Reverse 题目中争取实现 4–5 道以上的自动解题成功，不以偶然成功作为系统完成的依据。
+
+---
+
+# 十一、代码质量要求
+
+1. 使用类型标注。
+2. 核心模块编写 Docstring。
+3. 避免重复实现相同功能。
+4. 避免巨型函数和巨型类。
+5. 所有外部输入必须经过校验。
+6. 所有工具调用必须有日志。
+7. 所有耗时操作必须有超时机制。
+8. 重要模块必须编写 pytest 测试。
+9. 不得硬编码 API Key。
+10. 不得将未经验证的 Flag 标记为成功。
+11. 不得为了通过测试而删除安全限制。
+12. 不得伪造测试结果或执行结果。
+
+代码提交前运行：
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src/
+uv run pytest -q
+```
+
+如果某个检查暂时无法通过，必须明确说明原因和剩余问题。
+
+---
+
+# 十二、交给开发 Agent 的执行指令
+
+请按照本开发说明书，在当前工作区实际搭建 CTF-Forge 项目。
+
+执行要求：
+
+**第一步：环境检查**
+
+先检查当前环境、Python 版本、uv、Docker 和项目目录状态。不要覆盖已有用户文件。
+
+**第二步：实施 Milestone 0–1**
+
+先完成项目初始化、目录结构、依赖管理、配置管理、数据模型和 CLI。
+
+**第三步：验证**
+
+运行依赖安装、代码检查和基础测试。遇到错误应实际修复，不要只给出修复建议。
+
+**第四步：继续实施**
+
+按 Milestone 2–7 的顺序推进。每完成一个里程碑，都需要运行对应测试并记录结果。
+
+**第五步：持续维护文档**
+
+更新 README.md，记录：
+
+- 项目环境配置。
+- 安装方法。
+- Docker 构建方法。
+- API 配置方法。
+- CLI 使用方法。
+- 模块说明。
+- 测试方法。
+- 已知问题。
+
+**第六步：开发汇报**
+
+每个里程碑完成后输出：
+
+1. 已创建或修改的文件。
+2. 已实现的功能。
+3. 执行过的命令。
+4. 测试结果。
+5. 当前存在的问题。
+6. 下一阶段计划。
+
+如果遇到设计冲突，优先保证安全隔离、模块解耦、真实执行反馈和可测试性。
+
+不要为了追求快速完成而一次性生成大量未经验证的代码。
+
+---
+
+# 十三、未来扩展方向
+
+第一阶段完成后，按照以下顺序扩展：
+
+- v0.2：接入 CTFd 比赛适配器、比赛题目获取。
+- v0.3：增加 Web、Misc、Crypto 专项 Skill。
+- v0.4：增加 Pwn、Forensics。
+- v0.5：增加多 Agent 协作。
+- v1.0：实现授权 Jeopardy CTF 比赛的自动调度、解题和提交。
+
+所有线上网络操作必须遵守比赛规则，只允许访问明确授权的比赛目标。
+
+---
+
+**项目最终愿景：**
+
+构建一套能够自主理解题目、自主规划、自主调用真实工具、自主观察执行结果、自主调整解题策略，并且能够积累历史解题经验的 CTF Agent 系统。
+
+核心原则：
+
+**先让工具可靠，再让 Agent 聪明；先让单题解题闭环成立，再扩展到整个比赛。
+**
+
+
+
+使用建议
+我建议你不要把整个说明书一次性扔给编程 Agent，然后让它一次生成所有代码。
+
+更好的方式是：
+1. 先让它阅读完整开发说明书。
+2. 要求它只实施 Milestone 0 和 Milestone 1。
+3. 让它运行测试并汇报。
+4. 你检查结果后，再让它继续 Milestone 2。
+这样可以避免 Agent 一次性生成大量代码，却没有真正跑通过。
+
+还有一个重要建议： 让你的开发 Agent 每个阶段都维护 README.md 和 IMPLEMENTATION_STATUS.md，记录已经完成的模块、测试结果和未解决问题。这样即使更换模型或开启新会话，也能继续开发，不必重新解释整个项目。

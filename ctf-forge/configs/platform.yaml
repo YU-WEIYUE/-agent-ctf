@@ -1,0 +1,7 @@
+# rCTF platform used for competition challenges (host side only; the sandbox stays offline).
+# Credentials belong in .env or .data/hi-session.secret.json, never in this file.
+base_url: https://ctf.hiddeninvestigations.net
+session_file: .data/hi-session.secret.json
+timeout_seconds: 30
+# Cloudflare error 1010 blocks library user agents; a browser signature is required.
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36

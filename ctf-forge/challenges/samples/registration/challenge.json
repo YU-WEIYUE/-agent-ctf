@@ -1,0 +1,8 @@
+{
+  "challenge_id": "registration-demo",
+  "name": "Registration-only demo (not an ELF challenge)",
+  "category": "reverse",
+  "description": "Tests task registration and persistence only. No flag or execution.",
+  "files": ["attachment.txt"],
+  "scope": {"authorized": true, "local_only": true}
+}

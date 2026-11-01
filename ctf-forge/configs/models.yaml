@@ -1,0 +1,5 @@
+name: null
+base_url: null
+api_key: null
+timeout_seconds: 60
+max_retries: 2

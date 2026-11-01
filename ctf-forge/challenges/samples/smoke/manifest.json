@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "synthetic-smoke-not-public-benchmark",
+  "challenges": [
+    {
+      "id": "reverse_00",
+      "binary": "bin/reverse_00",
+      "answer": "answers/reverse_00.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_01",
+      "binary": "bin/reverse_01",
+      "answer": "answers/reverse_01.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_02",
+      "binary": "bin/reverse_02",
+      "answer": "answers/reverse_02.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_03",
+      "binary": "bin/reverse_03",
+      "answer": "answers/reverse_03.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_04",
+      "binary": "bin/reverse_04",
+      "answer": "answers/reverse_04.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_05",
+      "binary": "bin/reverse_05",
+      "answer": "answers/reverse_05.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_06",
+      "binary": "bin/reverse_06",
+      "answer": "answers/reverse_06.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_07",
+      "binary": "bin/reverse_07",
+      "answer": "answers/reverse_07.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_08",
+      "binary": "bin/reverse_08",
+      "answer": "answers/reverse_08.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    },
+    {
+      "id": "reverse_09",
+      "binary": "bin/reverse_09",
+      "answer": "answers/reverse_09.txt",
+      "difficulty": "synthetic-easy",
+      "description": "Find the key and recover the flag from this ELF."
+    }
+  ]
+}

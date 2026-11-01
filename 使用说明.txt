@@ -1,0 +1,37 @@
+﻿CTF-Forge 使用说明（2026-11-01）
+
+项目正本：D:/Users/lenovo/Desktop/自动化安全程序/ctf-forge/
+
+你以后可以直接对 Codex 或其他 Agent 说：
+“先读这个项目的 AGENTS.md，用现有工作流分析我给的这道 ELF 题，执行工具、验证候选并保存报告。”
+
+平时直接使用当前 Agent，不需要额外模型或 API Key。
+项目负责：独立 Docker 容器、ELF/反汇编/字符串/Python/GDB 工具、真实结果反馈、候选验证、状态和报告。
+
+Agent 的主要命令：
+uv run ctf-forge solve <题目文件> --description <描述文件>
+uv run ctf-forge observe <task_id>
+uv run ctf-forge step <task_id> --action <动作JSON>
+uv run ctf-forge report <task_id>
+
+如果有可信标准答案，solve 加 --answer-file <答案文件>。
+没有答案时只报告候选，不会冒充验证成功。停止并保存部分报告用 close <task_id>。
+
+未来使用 DeepSeek API：按 .env.example 在本机 .env 填 Key，再用 --mode autonomous。
+目前未填写你的 API Key，所以 DeepSeek 云端调用还未实测。不要把 Key 发到聊天里。
+
+已验：63 项测试通过；14 项容器检查通过；10 道自建 ELF 的脚本驱动集成全部通过。
+注意：这 10 道同类合成题是检查工作流，不是模型的比赛能力成绩。
+
+Docker 未启动时，在项目目录执行 scripts/start-docker.ps1。
+完整操作说明看 README.md；真实进度和失败记录看 IMPLEMENTATION_STATUS.md。
+
+比赛平台（可选，宿主侧联网）：
+uv run ctf-forge platform me
+uv run ctf-forge platform list --category reverse
+uv run ctf-forge platform pull "<题目名>"        # 下附件并核对题目声明的 SHA-256
+uv run ctf-forge solve <ELF> --description challenges/platform/<题目>/description.md --platform-challenge <challenge_id>
+uv run ctf-forge platform submit "<题目名>" --flag "hiCTF{候选}"
+带 --platform-challenge 时由平台判定对错：good* 才算成功，bad* 记 rejected 且任务继续。
+容器仍然断网；目前只覆盖有附件的 Reverse 题，远程实例题与其它分类不支持。
+当前状态：81 测试通过；self-test 14/14；10/10 合成题；平台拉取已实测；Cold Beacon 已用本工具解出并提交成功（54 分，见 challenges/platform/cold-beacon/SOLUTION.md）。

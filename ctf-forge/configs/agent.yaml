@@ -1,0 +1,5 @@
+max_seconds: 600
+max_tool_calls: 30
+max_llm_calls: 15
+max_tokens: 100000
+max_stalled_steps: 3

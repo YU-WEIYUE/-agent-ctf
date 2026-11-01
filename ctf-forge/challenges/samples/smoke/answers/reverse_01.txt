@@ -1,0 +1,1 @@
+flag{forge_smoke_01_verified}

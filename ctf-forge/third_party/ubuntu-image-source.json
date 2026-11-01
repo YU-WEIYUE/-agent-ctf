@@ -1,0 +1,8 @@
+{
+  "registry": "registry-1.docker.io/library/ubuntu",
+  "tag": "24.04",
+  "manifest_digest": "sha256:78d4744ead1f5b19b04d0df558ab182a5300903900755e515b2ca4d10eb2044d",
+  "layers": [
+    "sha256:7a48b8f0e5c73d0cc2a85b008978396aa19d253dc1b96fdb0b769ee6dcbeca4a"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "repository": "https://github.com/0ca/BoxPwnr",
+  "commit": "6e2778ce6741b2f1755b4cfbc5ea37b663b1399c",
+  "license": "AGPL-3.0",
+  "files": [
+    {
+      "upstream_file": "src/boxpwnr/executors/base_executor.py",
+      "upstream_sha256": "46f71240c1426d84dacc9db947c38161cd8d8f7da03fa0637df95b64c3ba8b3c",
+      "local_file": "src/ctf_forge/_vendor/boxpwnr/executors/base_executor.py",
+      "local_sha256": "46f71240c1426d84dacc9db947c38161cd8d8f7da03fa0637df95b64c3ba8b3c"
+    },
+    {
+      "upstream_file": "src/boxpwnr/platforms/target.py",
+      "upstream_sha256": "7204cf4b047b8e296bb098b6b02243ff02b9a10b61f88a1d91476bde2a38258c",
+      "local_file": "src/ctf_forge/_vendor/boxpwnr/platforms/target.py",
+      "local_sha256": "7204cf4b047b8e296bb098b6b02243ff02b9a10b61f88a1d91476bde2a38258c"
+    },
+    {
+      "upstream_file": "src/boxpwnr/platforms/base_platform.py",
+      "upstream_sha256": "42b77a42afe36af0b7e167c112587e79aaca7798762be22ebd601f15e3b4f86c",
+      "local_file": "src/ctf_forge/_vendor/boxpwnr/platforms/base_platform.py",
+      "local_sha256": "601587ccc5fb405902f6d295d7b89444d4051ea6795725297668ba23d7353124"
+    },
+    {
+      "upstream_file": "src/boxpwnr/core/deadline.py",
+      "upstream_sha256": "39e4a454eb58e6ac79f411b2c4bdc75042636d4e5d235aade2747d7274de401c",
+      "local_file": "src/ctf_forge/_vendor/boxpwnr/core/deadline.py",
+      "local_sha256": "39e4a454eb58e6ac79f411b2c4bdc75042636d4e5d235aade2747d7274de401c"
+    }
+  ]
+}

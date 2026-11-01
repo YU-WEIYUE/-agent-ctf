@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ctf-forge"
+version = "0.1.0.dev1"
+description = "An auditable, sandbox-first ELF reverse engineering agent (foundation stage)"
+license = "AGPL-3.0-only"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "langgraph>=1,<2",
+  "langgraph-checkpoint-sqlite>=3,<4",
+  "langchain-openai>=1,<2",
+  "pydantic>=2.12,<3",
+  "pydantic-settings>=2.10,<3",
+  "PyYAML>=6,<7",
+  "typer>=0.16,<1",
+  "rich>=14,<15",
+  "structlog>=25,<27",
+]
+
+[project.optional-dependencies]
+reverse = ["pyelftools>=0.32,<1", "capstone>=5,<6", "docker>=7,<8"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.12,<1", "mypy>=1.17,<2", "types-PyYAML>=6"]
+
+[project.scripts]
+ctf-forge = "ctf_forge.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ctf_forge"]
+
+[tool.ruff]
+extend-exclude = ["src/ctf_forge/_vendor"]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+exclude = ["src/ctf_forge/_vendor/", "src/(?!ctf_forge/)"]
+
+[[tool.mypy.overrides]]
+module = ["ctf_forge._vendor.*"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
